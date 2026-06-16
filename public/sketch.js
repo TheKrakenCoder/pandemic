@@ -12,7 +12,8 @@ const CLASS_NONE = -1, CLASS_CONTINGENCY = 0, CLASS_DISPATCHER = 1, CLASS_MEDIC 
 const m_classNames = ['Contingency', 'Dispatcher', 'Medic', 'Operations', 'Quarantine', 'Researcher', 'Scientist'];
 
 const SET_PLAYER = 0, SET_INFECTION = 1, SET_CLASSES = 2, SET_NUM_SETS = 3;
-const DECK_PLAYER = 0, DECK_PLAYER_DISCARD = 1,   DECK_INFECTION = 2, DECK_INFECTION_DISCARD = 3, DECK_CLASSES = 4, DECK_NUM_DECKS = 5;
+const DECK_PLAYER = 0, DECK_PLAYER_DISCARD = 1,   DECK_INFECTION = 2, DECK_INFECTION_DISCARD = 3, DECK_CLASSES = 4, 
+      DECK_REMOVED = 5, DECK_GENERIC = 6, DECK_NUM_DECKS = 7;
 const NUM_PLAYER_NORMAL = 48, NUM_EVENT = 5, NUM_EPIDEMIC = 6, NUM_INFECTION = 48;
 var m_messageColors = ['#000000', '#FF0000', '#55AA55', '#0000FF'];
 var m_tokenColors = ['#1F7071', '#C24E97', '#E46423', '#749E3C', '#396C5B', '#794d32', '#B6ADAE'];
@@ -41,6 +42,7 @@ let m_s = 1.0;
 let m_allButtons = [];
 let m_difficulty = 4;
 var m_qrImageElement, m_qrShowing = false;
+let m_buttonYes, m_buttonNo;
 let m_savedData, m_saveButton, m_loadButton, m_parseButton, m_restoreButton, m_jsonInput, m_hideSaveButton;
 
 //////////////////////////////////////////////////////////////////////////////////////
@@ -105,6 +107,12 @@ function setup() {
   startIndex = 0;
   m_decks[DECK_CLASSES] = new Deck(DECK_CLASSES, SET_CLASSES, SET_CLASSES, m_bcw, m_bch);
   createCardsAndAddToDeck(SET_CLASSES, DECK_CLASSES, startIndex, CLASS_NUM_CLASSES);
+
+  // The removed deck can have player cards and infection cards.  noone will ever see it so that's ok
+  m_decks[DECK_REMOVED] = new Deck(DECK_INFECTION_DISCARD, SET_INFECTION, SET_INFECTION, m_bch, m_bcw);
+
+  // The generic deck is for the FOrecast Event which uses infection cards
+  m_decks[DECK_GENERIC] = new Deck(DECK_GENERIC, SET_INFECTION, SET_INFECTION, m_bch, m_bcw);
 
   // // JMU testing add a card to each discard
   // let card = m_decks[DECK_PLAYER].dealCard();
@@ -240,6 +248,10 @@ function setup() {
   buttonInfectionDeal.mousePressed(dealInfectionCard);
   let buttonInfectionDealBottom = createNormalButton("Deal Bot", 785, 0, m_bw, m_bh);
   buttonInfectionDealBottom.mousePressed(dealBottomInfectionCard);
+  let buttonInfectionMoveToTop = createNormalButton("Top", 715, 70, m_bw, m_bh/2);
+  buttonInfectionMoveToTop.mousePressed(moveToTopOfInfection);
+  let buttonInfectionMoveToBot = createNormalButton("Bot", 715, 100, m_bw, m_bh/2);
+  buttonInfectionMoveToBot.mousePressed(moveToBotOfInfection);
 
   // Infection Discard shuffle and place on top of Infection.  Spread button
   let buttonInfectionDiscardShuffle = createNormalButton("Shuffle", 910, 0, m_bw, m_bh);
@@ -285,20 +297,29 @@ function setup() {
   let buttonBlackState = createNormalButton2("State Black", 12*m_bw, 850, m_bw, m_bh, "#A0A0A0");
   buttonBlackState.mousePressed(() => changeDiseaseState(3));  // yellow +1
 
+  // "special" buttons
+  let buttonMarkCard = createNormalButton("Mark Card", 14*m_bw, 850, m_bw, m_bh);
+  buttonMarkCard.mousePressed(markCard); 
+  let buttonForecast = createNormalButton("Fore cast", 15*m_bw, 850, m_bw, m_bh);
+  buttonForecast.mousePressed(forecast); 
+  let buttonRemoveCardFromGame = createNormalButton2("Rem- ove", 17*m_bw, 850, m_bw, m_bh, "#FFA500");
+  buttonRemoveCardFromGame.mousePressed(removeCardFromGame); 
+
+
   // Set difficulty
-  let buttonDifficulty4 = createNormalButton("Diff 4", 1000, 850, m_bw, m_bh);
+  let buttonDifficulty4 = createNormalButton("Diff 4", 1050, 850, m_bw, m_bh);
   buttonDifficulty4.mousePressed(function(){
       m_difficulty = 4;
       addEpidemicCards();
       update();
     });
-  let buttonDifficulty5 = createNormalButton("Diff 5", 1050, 850, m_bw, m_bh);
+  let buttonDifficulty5 = createNormalButton("Diff 5", 1100, 850, m_bw, m_bh);
   buttonDifficulty5.mousePressed(function(){
       m_difficulty = 5;
       addEpidemicCards();
       update();
     });
-  let buttonDifficulty6 = createNormalButton("Diff 6", 1100, 850, m_bw, m_bh);
+  let buttonDifficulty6 = createNormalButton("Diff 6", 1150, 850, m_bw, m_bh);
   buttonDifficulty6.mousePressed(function(){
       m_difficulty = 6;
       addEpidemicCards();
@@ -316,12 +337,30 @@ function setup() {
   m_qrImageElement.size(493, 674);
   if (!m_qrShowing) m_qrImageElement.hide();
 
-  let showQuickReference = createNormalButton("QR", 900, 850, m_bw, m_bh);
+  let showQuickReference = createNormalButton("QR", 950, 850, m_bw, m_bh);
   showQuickReference.mousePressed(function(){
       if (m_qrShowing) m_qrImageElement.hide();
       else             m_qrImageElement.show();
       m_qrShowing = !m_qrShowing;
     });
+
+  ////////////////////////////////////////////
+  // Are You Sure Buttons. Hidden until needed
+  m_buttonYes = createNormalButton("Yes", 700, 375, 75, 50);
+  m_buttonYes.mousePressed(function(){
+      removeCardFromGamePart2();
+      m_buttonYes.hide();
+      m_buttonNo.hide();
+    });
+  m_buttonNo  = createNormalButton("No", 809, 375, 75, 50);
+  m_buttonNo.mousePressed(function(){
+      m_buttonYes.hide();
+      m_buttonNo.hide();
+    });
+  m_allButtons.push(new Button(m_buttonYes, 700, 375, 75, 50));
+  m_allButtons.push(new Button(m_buttonNo, 809, 375, 75, 50));
+  m_buttonYes.hide();
+  m_buttonNo.hide();
 
   // Buttons dealing with save and restore.  These are normally hidden.  They are below the canvas.
   m_saveButton = createButton("1 Save");
@@ -449,6 +488,95 @@ function addEpidemicCardsOrig() {
 ////////////////////////////////////////////
 // GUI FUNCTIONS
 ////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////////////////
+function markCard() {
+  updateNeeded = false;
+  for (let player of m_players) {
+    for (let card of player.cards) {
+      if (card.selected) {
+        card.isMarked = !card.isMarked;
+        updateNeeded = true;
+      }
+    }
+  }
+  if (updateNeeded) update();
+}
+//////////////////////////////////////////////////////////////////////////////////////
+function forecast() {
+  updateNeeded = false;
+  for (let i = 0; i < 6; i++) {
+    let card = m_decks[DECK_INFECTION].dealCard();
+    if (card) {
+      m_decks[DECK_GENERIC].addCard(card);
+      updateNeeded = true;
+    }
+  }
+  if (updateNeeded) update();
+}
+
+//////////////////////////////////////////////////////////////////////////////////////
+function moveToTopOfInfection() {
+  for (let i = m_decks[DECK_GENERIC].cards.length-1; i >= 0; i--) {
+    let card = m_decks[DECK_GENERIC].cards[i];
+    if (card.selected) {
+      let cards = m_decks[DECK_GENERIC].cards.splice(i, 1);
+      m_decks[DECK_INFECTION].addCard(cards[0]);
+    }
+  }
+}
+
+//////////////////////////////////////////////////////////////////////////////////////
+function moveToBotOfInfection() {
+  for (let i = m_decks[DECK_GENERIC].cards.length-1; i >= 0; i--) {
+    let card = m_decks[DECK_GENERIC].cards[i];
+    if (card.selected) {
+      let cards = m_decks[DECK_GENERIC].cards.splice(i, 1);
+      m_decks[DECK_INFECTION].cards.unshift(cards[0]);
+    }
+  }
+}
+
+function removeCardFromGame() {
+  // let cards = findSelectedCards();
+  // if (cards.length == 0) {
+  //   m_messageP.html('You must selected at least 1 card');
+  //   update();
+  //   return;
+  // }
+
+  m_buttonYes.show();
+  m_buttonNo.show();
+}
+
+//////////////////////////////////////////////////////////////////////////////////////
+// Can only remove player cards and Infection Discard cards
+function removeCardFromGamePart2() {
+  updateNeeded = false;
+  // look thru the player cards and the infection discard
+  for (let player of m_players) {
+    for (let i = player.cards.length-1; i >= 0; i--) {
+      let card = player.cards[i];
+      if (card.selected) {
+        let cards = player.cards.splice(i, 1);
+        m_decks[DECK_REMOVED].addCard(cards[0]);
+        updateNeeded = true;
+      }
+    }
+  }
+
+  for (let i = m_decks[DECK_INFECTION_DISCARD].cards.length-1; i >= 0; i--) {
+    let card = m_decks[DECK_INFECTION_DISCARD].cards[i];
+    if (card.selected) {
+      let cards = m_decks[DECK_INFECTION_DISCARD].cards.splice(i, 1);
+      m_decks[DECK_REMOVED].addCard(cards[0]);
+      updateNeeded = true;
+    }
+  }
+
+  if (updateNeeded) update();
+
+}
+
 //////////////////////////////////////////////////////////////////////////////////////
 function changeDiseaseState(color) {
   m_diseaseStates[color] += 1;
@@ -608,7 +736,7 @@ function createCardsAndAddToDeck(setIdx, deckIdx, startIdx, len) {
 //////////////////////////////////////////////////////////////////////////////////////
 function mousePressed() {
   console.log('mousePressed x = ' ,mouseX, ' y = ', mouseY);
-  if (mouseY > 850) return;
+  if (mouseY > 850*m_s) return;
 
   // Check for tokens
   m_selectedToken = -1;
@@ -623,7 +751,7 @@ function mousePressed() {
   if (m_selectedToken != -1) return;
 
   // if we found a card, select it.  Otherwise unselect all cards.  You can 
-  // habe multiple cards selected.
+  // have multiple cards selected.
   let card = findCardUnderCursor();
   if (card) {
     card.selected = !card.selected;
@@ -699,9 +827,26 @@ function findCardUnderCursor() {
       }
     }
   }
+  cw = m_decks[DECK_PLAYER_DISCARD].cw, ch = m_decks[DECK_PLAYER_DISCARD].ch;
   for (let card of m_decks[DECK_PLAYER_DISCARD].cards) {
     if (mouseX > card.x && mouseX < card.x + cw && mouseY > card.y && mouseY < card.y + ch) {
       foundCard = card;
+    }
+  }
+  cw = m_decks[DECK_INFECTION_DISCARD].cw, ch = m_decks[DECK_INFECTION_DISCARD].ch;
+  if (m_decks[DECK_INFECTION_DISCARD].isSpread) {
+    for (let card of m_decks[DECK_INFECTION_DISCARD].cards) {
+      if (mouseX > card.x && mouseX < card.x + cw && mouseY > card.y && mouseY < card.y + ch) {
+        foundCard = card;
+      }
+    }
+  }
+  cw = m_decks[DECK_GENERIC].cw, ch = m_decks[DECK_GENERIC].ch;
+  if (m_decks[DECK_GENERIC].isSpread) {
+    for (let card of m_decks[DECK_GENERIC].cards) {
+      if (mouseX > card.x && mouseX < card.x + cw && mouseY > card.y && mouseY < card.y + ch) {
+        foundCard = card;
+      }
     }
   }
   return foundCard;
@@ -974,6 +1119,14 @@ function draw() {
     textSize(20*m_s);
     text(m_diseaseCount[i], x+15*m_s, y+15*m_s);
     pop();
+  }
+
+  // if there's anything in the generic deck, draw it
+  if (m_decks[DECK_GENERIC].cards.length > 0) {
+    m_decks[DECK_GENERIC].isSpread = true;
+    m_decks[DECK_GENERIC].show(0*m_s, 0*m_s, false);
+  } else {
+    m_decks[DECK_GENERIC].isSpread = false;
   }
 
   // check for cursor over a card

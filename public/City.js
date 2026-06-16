@@ -112,11 +112,11 @@ function createCities() {
   city = new City('Beijing', 911, 263, POS_RIGHT); m_cities.push(city);
   // city.diseases[0] = 3; city.diseases[1] = 2;
   city = new City('Manila', 1068, 504, POS_ABOVE); m_cities.push(city);
-  city = new City('Hong Kong', 979, 368, POS_BELOW); m_cities.push(city);
+  city = new City('Hong Kong', 949, 373, POS_BELOW); m_cities.push(city);
   city = new City('Seoul', 1049, 247, POS_LEFT); m_cities.push(city);
   city = new City('Shanghai', 911, 311, POS_RIGHT); m_cities.push(city);
-  city = new City('Sydney', 1099, 675, POS_ABOVE); m_cities.push(city);
-  city = new City('Toyko', 1110, 280, POS_LEFT); m_cities.push(city);
+  city = new City('Sydney', 1079, 675, POS_ABOVE); m_cities.push(city);
+  city = new City('Toyko', 1090, 280, POS_LEFT); m_cities.push(city);
   city = new City('Taipei', 1050, 398, POS_ABOVE); m_cities.push(city);
   city = new City('Ho Chi Minh', 981, 514, POS_ABOVE); m_cities.push(city);
   city = new City('Jakarta', 905, 567, POS_ABOVE); m_cities.push(city);

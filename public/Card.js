@@ -9,6 +9,7 @@ class Card {
     // this.facedown = true;
     this.selected = false;
     this.isNew = false;
+    this.isMarked = false;
   }
 
   show(facedown = false) {
@@ -35,6 +36,13 @@ class Card {
       noFill();
       rect(this.x-2, this.y-2, deck.cw, deck.ch);
       strokeWeight(1);
+    }
+    if (this.isMarked) {
+      let deck = m_decks[this.deckIndex];
+      stroke(0, 255, 0); fill(0, 255, 0);
+      let txtSz = 24*m_s;
+      textSize(txtSz);
+      text("M", this.x+deck.cw/2-txtSz, this.y+txtSz)
     }
     if (this.selected) {
       let deck = m_decks[this.deckIndex];
@@ -73,6 +81,7 @@ class Card {
     // this.facedown = data.facedown;
     this.selected = data.selected;
     this.isNew = data.isNew;
+    this.isMarked = data.isMarked;
   }
 
 }
