@@ -96,7 +96,7 @@ class City {
 function createCities() {
   let city = new City('London', 488, 195, POS_BELOW); m_cities.push(city);
   city = new City('Montreal', 262, 243, POS_BELOW); m_cities.push(city);
-  city = new City('St. Petersburg', 624, 171, POS_BELOW); m_cities.push(city);
+  city = new City('St. Petersburg', 634, 171, POS_BELOW); m_cities.push(city);
   city = new City('Chicago', 187, 245, POS_BELOW); m_cities.push(city);
   city = new City('Essen', 574, 185, POS_BELOW); m_cities.push(city);
   city = new City('Atlanta', 209, 343, POS_ABOVE); m_cities.push(city);

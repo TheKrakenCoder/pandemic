@@ -44,6 +44,7 @@ let m_difficulty = 4;
 var m_qrImageElement, m_qrShowing = false;
 let m_buttonYes, m_buttonNo;
 let m_savedData, m_saveButton, m_loadButton, m_parseButton, m_restoreButton, m_jsonInput, m_hideSaveButton;
+let m_areYouSureFunction = null;
 
 //////////////////////////////////////////////////////////////////////////////////////
 function preload() {
@@ -334,7 +335,8 @@ function setup() {
   // buttonRestoreGame.mousePressed(() => restoreSavedGame());
 
   m_qrImageElement = createImg('Assets/actionCard.jpg');
-  m_qrImageElement.size(493, 674);
+  // m_qrImageElement.size(493, 674);
+  m_qrImageElement.size(983, 352);
   if (!m_qrShowing) m_qrImageElement.hide();
 
   let showQuickReference = createNormalButton("QR", 950, 850, m_bw, m_bh);
@@ -344,18 +346,24 @@ function setup() {
       m_qrShowing = !m_qrShowing;
     });
 
+  // let firstDeal = createNormalButton("First Deal", 1000, 850, m_bw, m_bh);
+  // firstDeal.mousePressed(firstDeal);
+
   ////////////////////////////////////////////
   // Are You Sure Buttons. Hidden until needed
   m_buttonYes = createNormalButton("Yes", 700, 375, 75, 50);
   m_buttonYes.mousePressed(function(){
-      removeCardFromGamePart2();
+      // removeCardFromGamePart2();
+      if (m_areYouSureFunction) m_areYouSureFunction();
       m_buttonYes.hide();
       m_buttonNo.hide();
+      m_areYouSureFunction = null;
     });
   m_buttonNo  = createNormalButton("No", 809, 375, 75, 50);
   m_buttonNo.mousePressed(function(){
       m_buttonYes.hide();
       m_buttonNo.hide();
+      m_areYouSureFunction = null;
     });
   m_allButtons.push(new Button(m_buttonYes, 700, 375, 75, 50));
   m_allButtons.push(new Button(m_buttonNo, 809, 375, 75, 50));
@@ -399,6 +407,7 @@ function restoreData(data, isSavedGame = false) {
   setMessageFromServerData(data.message);
   m_difficulty = data.difficulty;
   m_diseaseCount = data.diseaseCount;
+  m_diseaseStates = data.diseaseStates;
 }
 
 function saveGame() {
@@ -546,6 +555,7 @@ function removeCardFromGame() {
 
   m_buttonYes.show();
   m_buttonNo.show();
+  m_areYouSureFunction = removeCardFromGamePart2;
 }
 
 //////////////////////////////////////////////////////////////////////////////////////
@@ -577,10 +587,21 @@ function removeCardFromGamePart2() {
 
 }
 
+function firstDeal() {
+  m_buttonYes.show();
+  m_buttonNo.show();
+  m_areYouSureFunction = firstDealPart2;
+
+}
+function firstDealPart2() {
+  
+}
+
 //////////////////////////////////////////////////////////////////////////////////////
 function changeDiseaseState(color) {
   m_diseaseStates[color] += 1;
   if (m_diseaseStates[color] > DISEASE_ERADICATED) m_diseaseStates[color] = 0;
+  update();
 }
 
 //////////////////////////////////////////////////////////////////////////////////////
@@ -939,6 +960,11 @@ function initPlayerToServer() {
 
 }  // initPlayerToServer()
 
+function resetServer() {
+  let data = {};
+  m_socket.emit('resetServer', data);
+}
+
 // emit all the players and the table to the server
 function update(isSavedGame = false) {
   if (m_initialized && m_socket) {
@@ -956,6 +982,7 @@ function update(isSavedGame = false) {
       tokens: m_tokens,
       difficulty: m_difficulty,
       diseaseCount: m_diseaseCount,
+      diseaseStates: m_diseaseStates,
       // taskCards: m_taskCards,
       // distress: m_distress,
       // numSandLeft: m_numSandLeft,
