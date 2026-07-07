@@ -21,6 +21,7 @@ let m_tokens = [];
 let m_message = "&nbsp";
 let m_difficulty = 4;
 let m_diseaseCount = [24, 24, 24, 24];
+let m_diseaseStates = [0, 0, 0, 0];
 // let m_trickCards = [];
 // let m_lastButtonPressed = 1;
 
@@ -58,6 +59,7 @@ function heartbeat() {
     tokens:  m_tokens,
     difficulty: m_difficulty,
     diseaseCount: m_diseaseCount,
+    diseaseStates: m_diseaseStates,
     // trickCards:   m_trickCards,
     // currentRound: m_currentRound,
     // lastButtonPressed: m_lastButtonPressed,
@@ -116,11 +118,24 @@ io.on(
       m_tokens  = data.tokens;
       m_difficulty = data.difficulty;
       m_diseaseCount = data.diseaseCount;
+      m_diseaseStates = data.diseaseStates;
       // m_currentRound = data.currentRound;
       // m_lastButtonPressed = data.lastButtonPressed;
       // m_firewood = data.firewood;
       // m_isOpenSeason = data.isOpenSeason;
       heartbeat();
+    });
+
+    socket.on('resetServer', function(data) {
+      io.disconnectSockets();
+      m_players = [];
+      m_decks = [];
+      m_cities = [];
+      m_tokens = [];
+      m_message = "&nbsp";
+      m_difficulty = 4;
+      m_diseaseCount = [24, 24, 24, 24];
+      m_diseaseStates = [0, 0, 0, 0];
     });
 
     //----------------------------------------------
@@ -145,6 +160,7 @@ io.on(
         if (m_message) m_message = "&nbsp";
         m_difficulty = 4;
         if (m_diseaseCount) m_diseaseCount = [24, 24, 24, 24];
+        if (m_diseaseStates) m_diseaseStates = [0, 0, 0, 0];
         // if (m_trickCards)  m_trickCards = [];
         // m_currentRound = 0;
         // m_lastButtonPressed = 1;
